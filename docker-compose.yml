@@ -1,0 +1,54 @@
+version: '3.8'
+services:
+  rabbitmq:
+    hostname: rabbitmq
+    image: rabbitmq:3.13-management-alpine
+    container_name: 'rabbitmq'
+    ports:
+      - 5672:5672
+      - 15672:15672
+    volumes:
+      - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
+      - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
+    networks:
+      - rabbitmq_go_net
+
+  firstServer:
+    image: node/example
+    restart: always
+    build:
+      dockerfile: server.Dockerfile
+      context: .
+    environment:
+      - PORT=${PORT_SERVER_1}
+      - RABBIT_MQ_URL=amqp://rabbitmq:5672
+      - FOLLOW_MESSAGE=SERVER_1
+    ports:
+      - ${PORT_SERVER_1}:${PORT_SERVER_1}
+
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      - rabbitmq
+
+  secondServer:
+    image: node/example
+    restart: always
+    build:
+      dockerfile: server.Dockerfile
+      context: .
+    environment:
+      - PORT=${PORT_SERVER_2}
+      - RABBIT_MQ_URL=amqp://rabbitmq:5672
+      - FOLLOW_MESSAGE=SERVER_2
+    ports:
+      - ${PORT_SERVER_2}:${PORT_SERVER_2}
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      - rabbitmq
+
+networks:
+  rabbitmq_go_net:
+    driver: bridge
+#short cut for testing
